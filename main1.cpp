@@ -1,14 +1,14 @@
-#include <iostream>
-#include <cmath>
-#include <random>
-#include <fstream>
+#include <iostream> // for console output
+#include <cmath> // for pow()
+#include <random> // for random number generator
+#include <fstream> // for files output
 using namespace std;
-#define e 7 // edge of the box
+#define e 7 // edge of the box: (0; e)x(0; e)x(0; e)
 #define c 3 // cut-off radius
 #define n 100 // number of particles
-#define dt 0.01 // dt
+#define dt 0.0000001 // dt
 #define v0 2 // initial velocity
-#define N 100 // number of iterations
+#define N 10000 // number of iterations
 // defining vectors
 class vec {
 public:
@@ -44,14 +44,14 @@ vec operator*(long double scalar, const vec& v) {
     return v * scalar; // Используем уже перегруженный оператор vec * long double
 }
 // defining vector functions
-vec pos(vec r0, vec r1, vec a1) {
+vec pos(vec r0, vec r1, vec a1) { // verlet integration
     return 2*r1-r0+a1*dt*dt;
 }
-long double mod(vec v) {
+long double mod(vec v) { // module
     return pow(v.x*v.x + v.y*v.y + v.z*v.z, 0.5);
 }
-vec vel(vec r1, vec r3) {
-    return (r3 - r1) / (2 * dt);
+vec vel(vec r0, vec r2) { // verlet velocities
+    return (r2 - r0) / (2 * dt);
 }
 
 int main()
@@ -130,6 +130,9 @@ int main()
             for(int j = 0; j < n && j != i; j++) {
                 vec v = R1[i] - R1[j];
                 long double r = mod(v);
+                if(r == 0) {
+                    return 1;
+                }
                 if(r <= c) {
                     A[i] = A[i] + v * (2 - pow(r, 6)) / pow(r, 14);
                 }
@@ -137,6 +140,9 @@ int main()
                     for(int k = 0; k < 26; k++) {
                         vec v1 = rrr[k] + v;
                         long double r1 = mod(v1);
+                        if(r == 0) {
+                            return 1;
+                        }
                         if(r1 <= c) {
                             A[i] = A[i] + v1 * (2 - pow(r1, 6)) / pow(r1, 14);
                             break; // if found then no need to continue
@@ -181,15 +187,18 @@ int main()
         K = 0;
         P = 0;
         for(int i = 0; i < n; i++) { // calculating energy
-            K += pow(mod(V[i]), 2);
+            K += V[i].x*V[i].x+V[i].y*V[i].y+V[i].z*V[i].z;
             for(int j = i+1; j < n; j++) {
                 long double r = mod(R0[i] - R0[j]);
+                if(r == 0) {
+                    return 1;
+                }
                 P += (1 - pow(r, 6)) / pow(r, 12);
             }
         }
         K *= 0.5;
         P *= 4;
-        cout << K << endl;
+        cout << K+P << endl;
     }
     of.close(); // closing the file
     return 0;
