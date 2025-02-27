@@ -1,14 +1,13 @@
 #include <iostream> // for console output
-#include <cmath> // for pow()
 #include <random> // for random number generator
 #include <fstream> // for files output
 using namespace std;
-#define e 7 // edge of the box: (0; e)x(0; e)x(0; e)
+#define e 9 // edge of the box: (0; e)x(0; e)x(0; e)
 #define c 3 // cut-off radius
-#define n 100 // number of particles
-#define dt 0.0000001 // dt
+#define n 216 // number of particles
+#define dt 0.001 // dt
 #define v0 2 // initial velocity
-#define N 10000 // number of iterations
+#define N 100000 // number of iterations
 // defining vectors
 class vec {
 public:
@@ -54,6 +53,7 @@ vec vel(vec r0, vec r2) { // verlet velocities
     return (r2 - r0) / (2 * dt);
 }
 
+
 int main()
 {
     ofstream of("list.xyz"); // creating a file
@@ -84,18 +84,34 @@ int main()
     uniform_real_distribution<> dis(0, e); // from 0 to e
     // generating initial positions
     of << n << endl << endl;
-    // generating initial positions
+    // generating initial positions // do not need random
+    /*
     for(int i = 0; i < n; i++) { 
         R0[i].x = dis(gen);
         R0[i].y = dis(gen);
         R0[i].z = dis(gen);
         of << "A" << i << " " << R0[i].x << " " << R0[i].y << " " << R0[i].z << endl;
     }
+    */
+    for(int i = 1; i <= 6; i++) {
+            for(int j = 1; j <= 6; j++) {
+                for(int k = 1; k <= 6; k++) {
+                    R0[k + (j-1) * 6 + (i-1) * 36 - 1].x = e / 7 * i;
+                    R0[k + (j-1) * 6 + (i-1) * 36 - 1].y = e / 7 * j;
+                    R0[k + (j-1) * 6 + (i-1) * 36 - 1].z = e / 7 * k;
+                    of << "A" << i << " " << R0[i].x << " " << R0[i].y << " " << R0[i].z << endl;
+                }
+            }
+        }    
     // calculating A0
     for(int i = 0; i < n; i++) { 
         for(int j = 0; j < n && j != i; j++) {
             vec v = R0[i] - R0[j];
             long double r = mod(v);
+            if(r == 0) {
+                of.close();
+                return 1;
+            }
             if(r <= c) {
                 A0[i] = A0[i] + v * (2 - pow(r, 6)) / pow(r, 14);
             }
@@ -103,6 +119,10 @@ int main()
                 for(int k = 0; k < 26; k++) {
                     vec v1 = rrr[k] + v;
                     long double r1 = mod(v1);
+                    if(r1 == 0) {
+                        of.close();
+                        return 1;
+                    }
                     if(r1 <= c) {
                         A0[i] = A0[i] + v1 * (2 - pow(r1, 6)) / pow(r1, 14);
                         break; // if found then no need to continue
@@ -131,6 +151,7 @@ int main()
                 vec v = R1[i] - R1[j];
                 long double r = mod(v);
                 if(r == 0) {
+                    of.close();
                     return 1;
                 }
                 if(r <= c) {
@@ -140,7 +161,8 @@ int main()
                     for(int k = 0; k < 26; k++) {
                         vec v1 = rrr[k] + v;
                         long double r1 = mod(v1);
-                        if(r == 0) {
+                        if(r1 == 0) {
+                            of.close();
                             return 1;
                         }
                         if(r1 <= c) {
@@ -191,6 +213,7 @@ int main()
             for(int j = i+1; j < n; j++) {
                 long double r = mod(R0[i] - R0[j]);
                 if(r == 0) {
+                    of.close();
                     return 1;
                 }
                 P += (1 - pow(r, 6)) / pow(r, 12);
@@ -198,7 +221,7 @@ int main()
         }
         K *= 0.5;
         P *= 4;
-        cout << K+P << endl;
+        cout << K+P << " " << K << " " << P << endl;
     }
     of.close(); // closing the file
     return 0;
