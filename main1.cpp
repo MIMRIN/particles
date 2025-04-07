@@ -2,13 +2,13 @@
 #include <random> // for random number generator
 #include <fstream> // for files output
 using namespace std;
-#define e 9 // edge of the box: (0; e)x(0; e)x(0; e)
-#define c 3 // cut-off radius
-#define n 216 // number of particles
-#define n3 6
+#define e 7.5 // edge of the box: (0; e)x(0; e)x(0; e)
+#define c 3
+#define n 125 // number of particles
+#define n3 5
 #define dt 0.001 // dt
-#define v0 2 // initial velocity
-#define N 10000 // number of iterations
+#define v0 2.55 // initial velocity
+#define N 5000 // number of iterations
 // defining vectors
 class vec {
 public:
@@ -55,7 +55,11 @@ vec vel(vec r0, vec r2) { // verlet velocities
 }
 
 int main() {
-    ofstream of("list.xyz"); // creating a file
+    ofstream of("pos.xyz"); // creating a file
+    ofstream af("vel.csv");
+    ofstream ef("eng.csv");
+    ef << "F,K,P" << endl;
+    af << "vx,vy,vz" << endl;
     double K = 0; // kinetic energy
     double P = 0; // potential energy
     vec R0[n]; // initial positions
@@ -80,6 +84,8 @@ int main() {
             }
     }    
     for(int i = 0; i < n; i++) {
+        vec zero(0, 0, 0);
+        A0[i] = zero;
         for(int j = 0; j < n; j++) {
             if(i != j) {
                 vec v = R0[i] - R0[j];
@@ -87,9 +93,7 @@ int main() {
                 v.y -= e * round(v.y / e);
                 v.z -= e * round(v.z / e);
                 double r2 = mod2(v);
-                if(r2 <= c * c) {
-                    A0[i] = A0[i] + 24 * v * (2 - pow(r2, 3)) / pow(r2, 7);
-                }
+                A0[i] = A0[i] + 24.0 * v * (2.0 - pow(r2, 3)) / pow(r2, 7);  
             }
         }
     }
@@ -106,18 +110,16 @@ int main() {
     //
     for(int I = 0; I < N; I++) { // iterating
         of << n << endl << I << endl;
-        vec A[n]; // initiating acceleration
+        vec A[n];
         for(int i = 0; i < n; i++) {
             for(int j = 0; j < n; j++) {
                 if(i != j) {
                     vec v = R1[i] - R1[j];
-                    v.x -= e * round(v.x / e);
-                    v.y -= e * round(v.y / e);
-                    v.z -= e * round(v.z / e);
+                    v.x = v.x - e * round(v.x / e);
+                    v.y = v.y - e * round(v.y / e);
+                    v.z = v.z - e * round(v.z / e);
                     double r2 = mod2(v);
-                    if(r2 <= c * c) {
-                        A[i] = A[i] + 24 * v * (2 - pow(r2, 3)) / pow(r2, 7);
-                    }
+                    A[i] = A[i] + 24 * v * (2 - pow(r2, 3)) / pow(r2, 7);
                 }
             }
         }
@@ -134,23 +136,29 @@ int main() {
             R1[i].y -= e * floor(R1[i].y / e);
             R0[i].z -= e * floor(R1[i].z / e);
             R1[i].z -= e * floor(R1[i].z / e);
-
         }         
         K = 0;
         P = 0;
         for(int i = 0; i < n; i++) { // calculating energy
-            K += 0.5 * mod2(V[i]);
-            for(int j = i+1; j < n; j++) {
-                vec v = R0[i] - R0[j];
-                v.x -= e * round(v.x / e);
-                v.y -= e * round(v.y / e);
-                v.z -= e * round(v.z / e);
-                double r2 = mod2(v);
-                P += 4 * (1 - pow(r2, 3)) / pow(r2, 6);
+            K += 0.5*mod2(V[i]);
+            for(int j = 0; j < n; j++) {
+                if(i != j) {
+                    vec v = R0[i] - R0[j];
+                    v.x -= e * round(v.x / e);
+                    v.y -= e * round(v.y / e);
+                    v.z -= e * round(v.z / e);
+                    double r2 = mod2(v);
+                    P += 2 * (1 - pow(r2, 3)) / pow(r2, 6);
+                }
             }
         }
-        cout << I << " " << K + P << endl;
+        ef << K+P << "," << K << "," << P << endl;
+    }
+    for(int i = 0; i < n; i++) {
+        af << V[i].x << "," << V[i].y << "," << V[i].z << endl;
     }
     of.close(); // closing the file
+    af.close();
+    ef.close();
     return 0;
 }
